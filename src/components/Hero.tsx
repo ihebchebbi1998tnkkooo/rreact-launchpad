@@ -1,29 +1,96 @@
-import { ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Hero = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const banners = [
+    {
+      image: 'banner.png',
+      title: 'Univers cadeau'
+    },
+    {
+      image: 'banner2.png',
+      title: 'Nouvelle collection'
+    },
+    {
+      image: 'banner3.png',
+      title: 'Le sur mesure'
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prevIndex) =>
+        prevIndex === banners.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 8000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center animate-fade-up">
-          <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6">
-            Build Something
-            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> Amazing</span>
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Create beautiful, responsive web applications with our modern React framework.
-          </p>
-          <div className="flex justify-center gap-4">
-            <button className="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2">
-              Get Started
-              <ArrowRight size={20} />
-            </button>
-            <button className="bg-white text-gray-900 px-8 py-3 rounded-lg border hover:bg-gray-50 transition-colors">
-              Learn More
-            </button>
+    <section className="relative h-[95vh] overflow-hidden"> {/* Changed from h-screen to h-[90vh] */}
+      <AnimatePresence mode='wait'>
+        <motion.div
+          key={currentIndex}
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url('${banners[currentIndex].image}')`,
+            willChange: 'transform'
+          }}
+          initial={{ opacity: 0, scale: 1.1 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{
+            duration: 1.2,
+            ease: [0.43, 0.13, 0.23, 0.96]
+          }}
+        />
+      </AnimatePresence>
+
+      <div className="absolute inset-0 bg-black/50" />
+
+      <div className="absolute bottom-6 w-full px-4 md:px-6 lg:px-8">
+        <div className="flex flex-col items-center lg:items-start">
+          <div className="flex justify-center lg:justify-start gap-4">
+            {banners.map((banner, index) => (
+              <div
+                key={index}
+                className="flex flex-col items-center lg:items-start"
+                style={{ minWidth: '100px' }}
+              >
+                <motion.h2
+                  className={`text-xs md:text-sm font-medium mb-1 text-center lg:text-left transition-colors duration-300 ${
+                    currentIndex === index ? 'text-white' : 'text-gray-400'
+                  }`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  {banner.title}
+                </motion.h2>
+                
+                <div className="w-full h-[1px] bg-gray-600 rounded-full">
+                  {currentIndex === index && (
+                    <motion.div
+                      className="h-full bg-white rounded-full"
+                      initial={{ width: '0%' }}
+                      animate={{ width: '100%' }}
+                      transition={{
+                        duration: 8,
+                        ease: 'linear',
+                        repeat: 0
+                      }}
+                      key={`progress-${currentIndex}`}
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
