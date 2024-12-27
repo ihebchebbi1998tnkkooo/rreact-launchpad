@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Product } from '@/types/product';
 import { playTickSound } from '@/utils/audio';
 import { toast } from '@/components/ui/use-toast';
@@ -27,20 +27,39 @@ const GiftBasket3D = ({ items, onItemDrop, onRemoveItem }: GiftBasket3DProps) =>
   const packConfig = getPackConfig(packId);
   const containerItemsMap = new Map<string, Product[]>();
 
-  // Distribute items to containers based on pack configuration
-  packConfig.containers.forEach((container, index) => {
-    const startIndex = packConfig.containers
-      .slice(0, index)
-      .reduce((sum, c) => sum + c.maxItems, 0);
-    containerItemsMap.set(
-      container.id,
-      items.slice(startIndex, startIndex + container.maxItems)
-    );
+  // Initialize containers with their respective items
+  packConfig.containers.forEach(container => {
+    containerItemsMap.set(container.id, []);
+  });
+
+  // Distribute items to their respective containers based on stored order
+  items.forEach((item, index) => {
+    const containerIndex = Math.floor(index / packConfig.containers[0].maxItems);
+    if (containerIndex < packConfig.containers.length) {
+      const containerId = packConfig.containers[containerIndex].id;
+      const containerItems = containerItemsMap.get(containerId) || [];
+      containerItems.push(item);
+      containerItemsMap.set(containerId, containerItems);
+    }
   });
 
   const handleDrop = (containerId: string) => (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const item = JSON.parse(e.dataTransfer.getData('product'));
+    
+    // Check if the target container has space
+    const containerConfig = packConfig.containers.find(c => c.id === containerId);
+    const containerItems = containerItemsMap.get(containerId) || [];
+    
+    if (containerConfig && containerItems.length >= containerConfig.maxItems) {
+      toast({
+        title: "Container plein",
+        description: `Ce pack ne peut contenir que ${containerConfig.maxItems} articles`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setDroppedItem(item);
     setTargetContainer(containerId);
     setShowDialog(true);
@@ -77,9 +96,9 @@ const GiftBasket3D = ({ items, onItemDrop, onRemoveItem }: GiftBasket3DProps) =>
       <div className="flex flex-col gap-4 h-[600px]">
         {packConfig.containers.map((container, index) => {
           const containerItems = containerItemsMap.get(container.id) || [];
-          const startIndex = packConfig.containers
-            .slice(0, index)
-            .reduce((sum, c) => sum + c.maxItems, 0);
+          const startIndex = items.findIndex(item => 
+            containerItems.some(containerItem => containerItem.id === item.id)
+          );
 
           return (
             <div 
