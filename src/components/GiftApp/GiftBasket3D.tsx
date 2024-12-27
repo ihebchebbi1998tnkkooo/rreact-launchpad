@@ -25,22 +25,22 @@ const GiftBasket3D = ({ items, onItemDrop, onRemoveItem }: GiftBasket3DProps) =>
   const [targetContainer, setTargetContainer] = useState<string>('');
 
   const packConfig = getPackConfig(packId);
+  
+  // Create a map to track which container each item belongs to
+  const itemContainerMap = new Map<string, string>(); // itemId -> containerId
   const containerItemsMap = new Map<string, Product[]>();
 
-  // Initialize containers with their respective items
+  // Initialize empty containers
   packConfig.containers.forEach(container => {
     containerItemsMap.set(container.id, []);
   });
 
-  // Distribute items to their respective containers based on stored order
+  // Distribute items based on their stored container assignments
   items.forEach((item, index) => {
-    const containerIndex = Math.floor(index / packConfig.containers[0].maxItems);
-    if (containerIndex < packConfig.containers.length) {
-      const containerId = packConfig.containers[containerIndex].id;
-      const containerItems = containerItemsMap.get(containerId) || [];
-      containerItems.push(item);
-      containerItemsMap.set(containerId, containerItems);
-    }
+    const containerId = itemContainerMap.get(item.id) || packConfig.containers[0].id;
+    const containerItems = containerItemsMap.get(containerId) || [];
+    containerItems.push(item);
+    containerItemsMap.set(containerId, containerItems);
   });
 
   const handleDrop = (containerId: string) => (e: React.DragEvent<HTMLDivElement>) => {
@@ -68,11 +68,15 @@ const GiftBasket3D = ({ items, onItemDrop, onRemoveItem }: GiftBasket3DProps) =>
 
   const handleConfirm = () => {
     if (droppedItem && selectedSize && onItemDrop) {
+      // Store the container assignment for this item
+      itemContainerMap.set(droppedItem.id, targetContainer);
+      
       onItemDrop(droppedItem, selectedSize, personalization);
       setShowDialog(false);
       setSelectedSize('');
       setPersonalization('');
       setDroppedItem(null);
+      
       toast({
         title: "Article ajouté au pack",
         description: "L'article a été ajouté avec succès à votre pack cadeau",
@@ -96,10 +100,7 @@ const GiftBasket3D = ({ items, onItemDrop, onRemoveItem }: GiftBasket3DProps) =>
       <div className="flex flex-col gap-4 h-[600px]">
         {packConfig.containers.map((container, index) => {
           const containerItems = containerItemsMap.get(container.id) || [];
-          const startIndex = items.findIndex(item => 
-            containerItems.some(containerItem => containerItem.id === item.id)
-          );
-
+          
           return (
             <div 
               key={container.id}
@@ -110,9 +111,13 @@ const GiftBasket3D = ({ items, onItemDrop, onRemoveItem }: GiftBasket3DProps) =>
                 items={containerItems}
                 onDrop={handleDrop}
                 onItemClick={handleProductClick}
-                onRemoveItem={(itemIndex) => 
-                  onRemoveItem?.(startIndex + itemIndex)
-                }
+                onRemoveItem={(itemIndex) => {
+                  const item = containerItems[itemIndex];
+                  const globalIndex = items.findIndex(i => i.id === item.id);
+                  if (globalIndex !== -1) {
+                    onRemoveItem?.(globalIndex);
+                  }
+                }}
                 className="h-full bg-white/95 backdrop-blur-sm shadow-xl rounded-xl border border-gray-100"
               />
             </div>
