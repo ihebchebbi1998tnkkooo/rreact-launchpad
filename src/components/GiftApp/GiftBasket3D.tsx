@@ -36,11 +36,13 @@ const GiftBasket3D = ({ items, onItemDrop, onRemoveItem }: GiftBasket3DProps) =>
   });
 
   // Distribute items based on their stored container assignments
-  items.forEach((item, index) => {
-    const containerId = itemContainerMap.get(item.id) || packConfig.containers[0].id;
-    const containerItems = containerItemsMap.get(containerId) || [];
-    containerItems.push(item);
-    containerItemsMap.set(containerId, containerItems);
+  items.forEach((item) => {
+    const containerId = itemContainerMap.get(item.id.toString()) || '';
+    if (containerId) {
+      const containerItems = containerItemsMap.get(containerId) || [];
+      containerItems.push(item);
+      containerItemsMap.set(containerId, containerItems);
+    }
   });
 
   const handleDrop = (containerId: string) => (e: React.DragEvent<HTMLDivElement>) => {
@@ -67,9 +69,22 @@ const GiftBasket3D = ({ items, onItemDrop, onRemoveItem }: GiftBasket3DProps) =>
   };
 
   const handleConfirm = () => {
-    if (droppedItem && selectedSize && onItemDrop) {
+    if (droppedItem && selectedSize && onItemDrop && targetContainer) {
+      // Check container capacity again before confirming
+      const containerConfig = packConfig.containers.find(c => c.id === targetContainer);
+      const containerItems = containerItemsMap.get(targetContainer) || [];
+      
+      if (containerConfig && containerItems.length >= containerConfig.maxItems) {
+        toast({
+          title: "Container plein",
+          description: `Ce pack ne peut contenir que ${containerConfig.maxItems} articles`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Store the container assignment for this item
-      itemContainerMap.set(droppedItem.id, targetContainer);
+      itemContainerMap.set(droppedItem.id.toString(), targetContainer);
       
       onItemDrop(droppedItem, selectedSize, personalization);
       setShowDialog(false);
